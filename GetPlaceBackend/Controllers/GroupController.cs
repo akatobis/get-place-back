@@ -9,11 +9,11 @@ namespace GetPlaceBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class HomeController : Controller
+public class GroupController : Controller
 {
     private static IMongoCollection<GroupModel> _collectionDb;
     
-    public HomeController(IMongoDatabase db)
+    public GroupController(IMongoDatabase db)
     {
         _collectionDb = db.GetCollection<GroupModel>("groups");
     }
