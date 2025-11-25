@@ -1,0 +1,21 @@
+﻿services:
+  getplacebackend:
+    image: getplacebackend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '5211:5211'
+
+  mongodb:
+    image: "mongo:4.4"
+    volumes:
+      - ../DataDB:/data/db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: GetPlace
+    ports:
+      - "27018:27017"
+
