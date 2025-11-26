@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using GetPlaceBackend.Dto;
 using GetPlaceBackend.Models;
+using GetPlaceBackend.Services.Group;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -11,20 +12,20 @@ namespace GetPlaceBackend.Controllers;
 [Route("api/[controller]")]
 public class GroupController : Controller
 {
-    private static IMongoCollection<GroupModel> _collectionDb;
+    private readonly IGroupService _service;
     
-    public GroupController(IMongoDatabase db)
+    public GroupController(IGroupService service)
     {
-        _collectionDb = db.GetCollection<GroupModel>("groups");
+        _service = service;
     }
     
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get(string userId)
     {
-        var groups = await _collectionDb
-            .Find(g => !g.IsDeleted)
-            .SortBy(g => g.Order)
-            .ToListAsync();
+        if (!ObjectId.TryParse(userId, out var userObjectId))
+            return BadRequest(new { message = "Invalid ObjectId format" });
+        
+        var groups = await _service.GetAll(userObjectId);
 
         return Ok(groups.Select(g => new GroupGetDto
         {
@@ -40,9 +41,7 @@ public class GroupController : Controller
         if (!ObjectId.TryParse(id, out var objectId))
             return BadRequest(new { message = "Invalid ObjectId format" });
 
-        var group = await _collectionDb
-            .Find(g => g.GroupId == objectId && !g.IsDeleted)
-            .FirstOrDefaultAsync();
+        var group = await _service.GetByIdAsync(objectId);
 
         if (group == null)
             return NotFound(new { message = "Group not found" });
@@ -60,21 +59,10 @@ public class GroupController : Controller
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] GroupAddDto groupAddDto)
     {
-        var maxOrder = await _collectionDb
-            .Find(_ => true)
-            .SortByDescending(g => g.Order)
-            .Limit(1)
-            .Project(g => g.Order)
-            .FirstOrDefaultAsync();
-
-        var newGroup = new GroupModel
-        {
-            Name = groupAddDto.Name,
-            Order = maxOrder + 1
-        };
-
-        await _collectionDb.InsertOneAsync(newGroup);
-
+        if (!ObjectId.TryParse(groupAddDto.UserId, out var userId))
+            return BadRequest(new { message = "Invalid ObjectId format" });
+        
+        await _service.AddAsync(groupAddDto.Name, userId);
         return Ok();
     }
     
@@ -84,18 +72,11 @@ public class GroupController : Controller
         if (!ObjectId.TryParse(id, out var objectId))
             return BadRequest("Invalid ID");
 
-        var update = Builders<GroupModel>.Update
-            .Set(g => g.IsDeleted, true);
+        var result = await _service.SoftDeleteAsync(objectId);
 
-        var result = await _collectionDb.UpdateOneAsync(
-            g => g.GroupId == objectId,
-            update
-        );
-
-        if (result.MatchedCount == 0)
-            return NotFound("Group not found");
-
-        return Ok("Group soft-deleted");
+        return result 
+            ? Ok("Group soft-deleted") 
+            : NotFound("Group not found");
     }
     
     [HttpPatch("update-order")]
@@ -104,23 +85,11 @@ public class GroupController : Controller
         if (!ObjectId.TryParse(dto.GroupId, out var objectId))
             return BadRequest(new { message = "Invalid ObjectId format" });
 
-        var group = await _collectionDb
-            .Find(g => g.GroupId == objectId && !g.IsDeleted)
-            .FirstOrDefaultAsync();
-        if (group == null)
-            return NotFound(new { message = "Group not found" });
-
-        await _collectionDb.UpdateManyAsync(
-            g => g.Order >= dto.Order,
-            Builders<GroupModel>.Update.Inc(g => g.Order, 1)
-        );
-
-        await _collectionDb.UpdateOneAsync(
-            g => g.GroupId == objectId,
-            Builders<GroupModel>.Update.Set(g => g.Order, dto.Order)
-        );
-
-        return Ok(new { message = "Order updated successfully" });
+        var result = await _service.UpdateOrderAsync(objectId, dto.Order);
+        
+        return result 
+            ? Ok(new { message = "Order updated successfully" })
+            : NotFound(new { message = "Group not found" });
     }
     
     [HttpPatch("{id}/rename")]
@@ -128,18 +97,12 @@ public class GroupController : Controller
     {
         if (!ObjectId.TryParse(id, out var objectId))
             return BadRequest(new { message = "Invalid ObjectId format" });
+        
+        var result = await _service.RenameAsync(objectId, dto.Name);
 
-        var group = await _collectionDb.Find(g => g.GroupId == objectId && !g.IsDeleted)
-            .FirstOrDefaultAsync();
-
-        if (group == null)
-            return NotFound(new { message = "Group not found" });
-
-        var update = Builders<GroupModel>.Update.Set(g => g.Name, dto.Name);
-
-        await _collectionDb.UpdateOneAsync(g => g.GroupId == objectId, update);
-
-        return Ok(new { message = "Group name updated successfully" });
+        return result 
+            ? Ok(new { message = "Group name updated successfully" }) 
+            : NotFound(new { message = "Group not found" });
     }
 
 }
