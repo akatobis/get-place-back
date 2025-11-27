@@ -1,5 +1,6 @@
 ﻿using GetPlaceBackend.Dto.Block;
 using GetPlaceBackend.Dto.Place;
+using GetPlaceBackend.Dto.Reservation;
 using GetPlaceBackend.Dto.UserAccess;
 using MongoDB.Bson;
 
@@ -17,4 +18,8 @@ public interface IPlaceService
     public Task AddUserAccessAsync(UserAccessAddDto dto);
     public Task AddBlockAsync(BlockCreateDto dto);
     public Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto);
+    public Task UpdateBlockNameAsync(BlockUpdateNameDto dto);
+    public Task DeleteBlockAsync(BlockDeleteDto dto);
+    public Task AddReservationAsync(ReservationCreateDto dto);
+    public Task DeleteReservationAsync(ReservationDeleteDto dto);
 }

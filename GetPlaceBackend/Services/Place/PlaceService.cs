@@ -1,5 +1,6 @@
 ﻿using GetPlaceBackend.Dto.Block;
 using GetPlaceBackend.Dto.Place;
+using GetPlaceBackend.Dto.Reservation;
 using GetPlaceBackend.Dto.UserAccess;
 using GetPlaceBackend.Models;
 using Microsoft.AspNetCore.Routing.Constraints;
@@ -324,5 +325,110 @@ public class PlaceService : IPlaceService
         var options = new UpdateOptions { ArrayFilters = arrayFilters };
     
         await placesCollection.UpdateOneAsync(filter, update, options);
+    }
+    
+    public async Task UpdateBlockNameAsync(BlockUpdateNameDto dto)
+    {
+        var place = await GetPlaceById(dto.PlaceShortId);
+        var grid = GetGridById(dto.GridId, place);
+        // var block = GetBlockById(dto.BlockId, grid);
+
+        var filter = Builders<PlaceModel>.Filter.And(
+            Builders<PlaceModel>.Filter.Eq(p => p.PlaceShortId, dto.PlaceShortId),
+            Builders<PlaceModel>.Filter.ElemMatch(p => p.Grids, g => g.GridId == dto.GridId),
+            Builders<PlaceModel>.Filter.Eq("Grids.Blocks.BlockId", dto.BlockId)
+        );
+
+        var update = Builders<PlaceModel>.Update
+            .Set("Grids.$[].Blocks.$[b].Name", dto.Name);
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new JsonArrayFilterDefinition<BsonDocument>("{ 'b.BlockId': ObjectId('" + dto.BlockId + "') }")
+        };
+
+        var options = new UpdateOptions { ArrayFilters = arrayFilters };
+
+        await placesCollection.UpdateOneAsync(filter, update, options);
+    }
+    
+    public async Task DeleteBlockAsync(BlockDeleteDto dto)
+    {
+        var place = await GetPlaceById(dto.PlaceShortId);
+
+        var filter = Builders<PlaceModel>.Filter.And(
+            Builders<PlaceModel>.Filter.Eq(p => p.PlaceShortId, dto.PlaceShortId),
+            Builders<PlaceModel>.Filter.ElemMatch(p => p.Grids, g => g.GridId == dto.GridId)
+        );
+
+        var update = Builders<PlaceModel>.Update
+            .PullFilter("Grids.$.Blocks", Builders<BsonDocument>.Filter.Eq("BlockId", dto.BlockId));
+
+        var result = await placesCollection.UpdateOneAsync(filter, update);
+
+        if (result.ModifiedCount == 0)
+            throw new InvalidOperationException($"Не удалось удалить блок {dto.BlockId}");
+    }
+    
+    public async Task AddReservationAsync(ReservationCreateDto dto)
+    {
+        var place = await GetPlaceById(dto.PlaceShortId);
+
+        var overlappingReservation = place.Reservations.Any(r =>
+            r.BlockId == dto.BlockId &&
+            r.DateTimeStart < dto.DateTimeEnd &&
+            dto.DateTimeStart < r.DateTimeEnd
+        );
+
+        if (overlappingReservation)
+            throw new InvalidOperationException("Время бронирования пересекается с существующим");
+
+        var newReservation = new Reservation
+        {
+            GridId = dto.GridId,
+            BlockId = dto.BlockId,
+            DateTimeStart = dto.DateTimeStart,
+            DateTimeEnd = dto.DateTimeEnd
+        };
+
+        var update = Builders<PlaceModel>.Update
+            .Push(p => p.Reservations, newReservation);
+
+        await placesCollection.UpdateOneAsync(
+            p => p.PlaceShortId == dto.PlaceShortId,
+            update
+        );
+    }
+
+    public async Task DeleteReservationAsync(ReservationDeleteDto dto)
+    {
+        var place = await GetPlaceById(dto.PlaceShortId);
+
+        var reservationExists = place.Reservations.Any(r =>
+            r.GridId == dto.GridId &&
+            r.BlockId == dto.BlockId &&
+            r.DateTimeStart == dto.DateTimeStart &&
+            r.DateTimeEnd == dto.DateTimeEnd
+        );
+
+        if (!reservationExists)
+            throw new KeyNotFoundException("Бронь не найдена");
+
+        var update = Builders<PlaceModel>.Update
+            .PullFilter(
+                p => p.Reservations,
+                r => r.GridId == dto.GridId &&
+                     r.BlockId == dto.BlockId &&
+                     r.DateTimeStart == dto.DateTimeStart &&
+                     r.DateTimeEnd == dto.DateTimeEnd
+            );
+
+        var result = await placesCollection.UpdateOneAsync(
+            p => p.PlaceShortId == dto.PlaceShortId,
+            update
+        );
+
+        if (result.ModifiedCount == 0)
+            throw new InvalidOperationException("Не удалось удалить бронь");
     }
 }
