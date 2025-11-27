@@ -74,6 +74,9 @@
       <_ContentIncludedByDefault Remove="wwwroot\lib\jquery\dist\jquery.slim.min.js" />
       <_ContentIncludedByDefault Remove="wwwroot\lib\jquery\dist\jquery.slim.min.map" />
       <_ContentIncludedByDefault Remove="wwwroot\lib\jquery\LICENSE.txt" />
+      <_ContentIncludedByDefault Remove="GetPlaceTests\obj\GetPlaceTests.csproj.nuget.dgspec.json" />
+      <_ContentIncludedByDefault Remove="GetPlaceTests\obj\project.assets.json" />
+      <_ContentIncludedByDefault Remove="GetPlaceTests\obj\project.packagespec.json" />
     </ItemGroup>
 
     <ItemGroup>

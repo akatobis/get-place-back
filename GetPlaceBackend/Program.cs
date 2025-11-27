@@ -1,3 +1,6 @@
+using GetPlaceBackend.Services.Group;
+using GetPlaceBackend.Services.Place;
+using GetPlaceBackend.Services.User;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 
@@ -5,7 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(new MongoClient("mongodb://root:secret@localhost:27018").GetDatabase("get_place"));
 
-// Add services to the container.
 builder.Services.AddControllers();
 
 builder.Services.AddSwaggerGen(c =>
@@ -13,9 +15,12 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
 });
 
+builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPlaceService, PlaceService>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -24,7 +29,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-        c.RoutePrefix = string.Empty; // Доступ по корневому адресу
+        c.RoutePrefix = string.Empty;
     });
 }
 

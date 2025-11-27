@@ -13,4 +13,6 @@ public class GroupModel
     public int Order { get; set; }
     
     public bool IsDeleted { get; set; } = false;
+    
+    public ObjectId UserId { get; set; }
 }
