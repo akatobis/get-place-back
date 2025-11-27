@@ -2,6 +2,8 @@
 
 public class CardPlaceDto
 {
+    public CardPlaceDto() { }
+    
     public CardPlaceDto(string color, string name, string description, List<string> groupNames)
     {
         Color = color;

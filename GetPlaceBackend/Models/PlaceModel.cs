@@ -6,22 +6,31 @@ namespace GetPlaceBackend.Models;
 
 public class PlaceModel
 {
+    public PlaceModel(string placeShortId, string ownerId, string name, string description)
+    {
+        PlaceShortId = placeShortId;
+        OwnerId = ownerId;
+        Name = name;
+        Description = description;
+    }
+
     [BsonId]
     public ObjectId PlaceId { get; set; }
-    public string PlaceShortId { get; set; } = "";
-    public string OwnerId { get; set; } = "";
+    public string PlaceShortId { get; set; }
+    public string OwnerId { get; set; }
     public string Color { get; set; } = "#8a7f8e";
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public bool IsDeleted { get; set; } = false;
+
+    [BsonRepresentation(BsonType.Int32)] 
+    public AccessPlaceEnum Visible { get; set; } = AccessPlaceEnum.all;
     
     [BsonRepresentation(BsonType.Int32)] 
-    public AccessPlaceEnum Visible { get; set; }
+    public AccessPlaceEnum Editable { get; set; } = AccessPlaceEnum.nobody;
     
     [BsonRepresentation(BsonType.Int32)] 
-    public AccessPlaceEnum Editable { get; set; }
-    
-    [BsonRepresentation(BsonType.Int32)] 
-    public AccessPlaceEnum Reservable { get; set; }
+    public AccessPlaceEnum Reservable { get; set; } = AccessPlaceEnum.all;
 
     public List<ObjectId> GroupIds { get; set; } = [];
     public List<UserAccess> UserAccesses { get; set; } = [];

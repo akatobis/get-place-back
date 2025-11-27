@@ -1,4 +1,5 @@
 using GetPlaceBackend.Services.Group;
+using GetPlaceBackend.Services.Place;
 using GetPlaceBackend.Services.User;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
@@ -16,6 +17,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPlaceService, PlaceService>();
 
 var app = builder.Build();
 
