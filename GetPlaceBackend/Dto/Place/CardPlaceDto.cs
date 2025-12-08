@@ -1,4 +1,6 @@
-﻿namespace GetPlaceBackend.Dto.Place;
+﻿using MongoDB.Bson;
+
+namespace GetPlaceBackend.Dto.Place;
 
 public class CardPlaceDto
 {
@@ -12,6 +14,7 @@ public class CardPlaceDto
         GroupNames = groupNames;
     }
 
+    public ObjectId PlaceId { get; set; }
     public string Color { get; set; }
     public string Name { get; set; }
     public string Description { get; set;}

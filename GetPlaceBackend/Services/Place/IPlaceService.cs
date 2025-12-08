@@ -2,19 +2,21 @@
 using GetPlaceBackend.Dto.Place;
 using GetPlaceBackend.Dto.Reservation;
 using GetPlaceBackend.Dto.UserAccess;
+using GetPlaceBackend.Models;
 using MongoDB.Bson;
 
 namespace GetPlaceBackend.Services.Place;
 
 public interface IPlaceService
 {
-    public Task<List<CardPlaceDto>> GetPlacesByGroupIdAsync(ObjectId groupId);
+    public Task<List<PlaceModel>> GetPlacesByGroupIdAsync();
     public Task<PlaceAccessDto?> GetPlaceAccessAsync(string placeShortId);
     public Task<PlaceUserAccessDto> GetPlaceUserAccessAsync(string placeShortId);
     public Task<PlaceGridsAndReservationsDto> GetGridsAndReservationsAsync(string placeShortId);
     public Task CreatePlaceAsync(PlaceCreateDto dto);
     public Task DeletePlaceAsync(string placeId);
-    public Task UpdatePlaceAsync(PlaceUpdateNameDto dto);
+    public Task UpdatePlaceNameAsync(PlaceUpdateNameDto dto);
+    public Task UpdatePlaceAccessAsync(PlaceAccessUpdateDto dto);
     public Task AddUserAccessAsync(UserAccessAddDto dto);
     public Task AddBlockAsync(BlockCreateDto dto);
     public Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto);
@@ -22,4 +24,5 @@ public interface IPlaceService
     public Task DeleteBlockAsync(BlockDeleteDto dto);
     public Task AddReservationAsync(ReservationCreateDto dto);
     public Task DeleteReservationAsync(ReservationDeleteDto dto);
+    public Task UpdateUserNameInAllPlacesAsync(string oldUserName, string newUserName);
 }

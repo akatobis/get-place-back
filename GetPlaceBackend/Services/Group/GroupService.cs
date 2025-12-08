@@ -13,7 +13,7 @@ public class GroupService : IGroupService
         _collectionDb = db.GetCollection<GroupModel>("groups");
     }
 
-    public async Task<List<GroupModel>> GetAll(ObjectId userId)
+    public async Task<List<GroupModel>> GetAll(string userId)
     {
         return await _collectionDb
             .Find(g => g.UserId == userId && !g.IsDeleted)
@@ -21,17 +21,17 @@ public class GroupService : IGroupService
             .ToListAsync();
     }
 
-    public async Task<GroupModel?> GetByIdAsync(ObjectId id)
+    public async Task<GroupModel?> GetByIdAsync(string id)
     {
         return await _collectionDb
             .Find(g => g.GroupId == id && !g.IsDeleted)
             .FirstOrDefaultAsync();
     }
 
-    public async Task AddAsync(string name, ObjectId userId)
+    public async Task AddAsync(string name, string userId)
     {
         var maxOrder = await _collectionDb
-            .Find(_ => true)
+            .Find(_ => _.UserId == userId)
             .SortByDescending(g => g.Order)
             .Limit(1)
             .Project(g => g.Order)
@@ -47,7 +47,7 @@ public class GroupService : IGroupService
         await _collectionDb.InsertOneAsync(newGroup);
     }
 
-    public async Task<bool> SoftDeleteAsync(ObjectId id)
+    public async Task<bool> SoftDeleteAsync(string id)
     {
         var update = Builders<GroupModel>.Update
             .Set(g => g.IsDeleted, true);
@@ -60,7 +60,7 @@ public class GroupService : IGroupService
         return result.ModifiedCount > 0;
     }
 
-    public async Task<bool> RenameAsync(ObjectId id, string newName)
+    public async Task<bool> RenameAsync(string id, string newName)
     {
         var group = await _collectionDb.Find(g => g.GroupId == id && !g.IsDeleted)
             .FirstOrDefaultAsync();
@@ -75,7 +75,7 @@ public class GroupService : IGroupService
         return true;
     }
 
-    public async Task<bool> UpdateOrderAsync(ObjectId id, int newOrder)
+    public async Task<bool> UpdateOrderAsync(string id, int newOrder)
     {
         var group = await _collectionDb
             .Find(g => g.GroupId == id && !g.IsDeleted)

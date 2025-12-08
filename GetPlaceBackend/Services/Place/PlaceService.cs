@@ -3,6 +3,7 @@ using GetPlaceBackend.Dto.Place;
 using GetPlaceBackend.Dto.Reservation;
 using GetPlaceBackend.Dto.UserAccess;
 using GetPlaceBackend.Models;
+using GetPlaceBackend.Models.Enums;
 using Microsoft.AspNetCore.Routing.Constraints;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -45,7 +46,7 @@ public class PlaceService : IPlaceService
             .ToArray());
     }
 
-    private Grid GetGridById(ObjectId gridId, PlaceModel place)
+    private Grid GetGridById(string gridId, PlaceModel place)
     {
         var grid = place.Grids.FirstOrDefault(g => g.GridId == gridId);
         
@@ -55,7 +56,7 @@ public class PlaceService : IPlaceService
         return grid;
     }
 
-    private Block GetBlockById(ObjectId blockId, Grid grid)
+    private Block GetBlockById(string blockId, Grid grid)
     {
         var block = grid.Blocks.FirstOrDefault(b => b.BlockId == blockId);
         if (block == null)
@@ -63,10 +64,13 @@ public class PlaceService : IPlaceService
         return block;
     }
     
-    private ObjectId? CheckIntersectionBlocks(Block block, Grid grid)
+    private string CheckIntersectionBlocks(Block block, Grid grid, string? ignoredBlockId)
     {
         foreach (var existing in grid.Blocks)
         {
+            if (existing.BlockId == ignoredBlockId)
+                continue;
+            
             var noOverlap =
                 block.RightBottomX <= existing.LeftTopX || // new слева
                 block.LeftTopX >= existing.RightBottomX || // new справа
@@ -80,45 +84,13 @@ public class PlaceService : IPlaceService
         return null;
     }
     
-    public async Task<List<CardPlaceDto>> GetPlacesByGroupIdAsync(ObjectId groupId)
+    public async Task<List<PlaceModel>> GetPlacesByGroupIdAsync()
     {
-        // Фильтруем плейсы, в которых есть этот groupId
         var places = await placesCollection
-            .Find(p => p.GroupIds.Contains(groupId) && !p.IsDeleted)
+            .Find(p => true)
             .ToListAsync();
 
-        if (places.Count == 0)
-            return [];
-
-        // Получаем имена Групп, на которые ссылаются Place
-        var allGroupIds = places
-            .SelectMany(p => p.GroupIds)
-            .Distinct()
-            .ToList();
-
-        var groups = await groupsCollection
-            .Find(g => allGroupIds.Contains(g.GroupId) && !g.IsDeleted)
-            .ToListAsync();
-
-        // Преобразуем в словарь для быстрого доступа
-        var groupNames = groups.ToDictionary(
-            g => g.GroupId,
-            g => g.Name
-        );
-
-        // Маппинг Place → CardPlaceDto
-        var result = places.Select(place => new CardPlaceDto
-        {
-            Color = place.Color,
-            Name = place.Name,
-            Description = place.Description,
-            GroupNames = place.GroupIds
-                .Where(id => groupNames.ContainsKey(id))
-                .Select(id => groupNames[id])
-                .ToList()
-        }).ToList();
-
-        return result;
+        return places;
     }
     
     public async Task<PlaceAccessDto?> GetPlaceAccessAsync(string placeShortId)
@@ -183,7 +155,7 @@ public class PlaceService : IPlaceService
             throw new KeyNotFoundException($"Place: {placeShortId} не найден");
     }
 
-    public async Task UpdatePlaceAsync(PlaceUpdateNameDto dto)
+    public async Task UpdatePlaceNameAsync(PlaceUpdateNameDto dto)
     {
         var update = Builders<PlaceModel>.Update
             .Set(p => p.Name, dto.Name)
@@ -194,6 +166,30 @@ public class PlaceService : IPlaceService
             update
         );
         
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Place: {dto.PlaceId} не найден");
+    }
+    
+    public async Task UpdatePlaceAccessAsync(PlaceAccessUpdateDto dto)
+    {
+        var updateBuilder = Builders<PlaceModel>.Update;
+        UpdateDefinition<PlaceModel>? update = null;
+
+        if (dto.NameAccessPlaceEnum == NameAccessPlaceEnum.Editable)
+            update = updateBuilder.Set(p => p.Editable, dto.AccessPlaceEnum);
+        if (dto.NameAccessPlaceEnum == NameAccessPlaceEnum.Visible)
+            update = updateBuilder.Set(p => p.Visible, dto.AccessPlaceEnum);
+        if (dto.NameAccessPlaceEnum == NameAccessPlaceEnum.Reservable)
+            update = updateBuilder.Set(p => p.Reservable, dto.AccessPlaceEnum);
+
+        if (update == null)
+            throw new ArgumentException("Некорректный NameAccessPlaceEnum");
+
+        var result = await placesCollection.UpdateOneAsync(
+            p => p.PlaceShortId == dto.PlaceId,
+            update
+        );
+
         if (result.MatchedCount == 0)
             throw new KeyNotFoundException($"Place: {dto.PlaceId} не найден");
     }
@@ -242,50 +238,48 @@ public class PlaceService : IPlaceService
     
     public async Task AddBlockAsync(BlockCreateDto dto)
     {
-        // 1. Загружаем Place
         var place = await GetPlaceById(dto.PlaceShortId);
-
-        // 2. Находим нужный Grid
         var grid = GetGridById(dto.GridId, place);
 
-        // 3. Новые координаты
         var newBlock = new Block
         {
-            BlockId = ObjectId.GenerateNewId(),
+            BlockId = ObjectId.GenerateNewId().ToString(),
             LeftTopX = dto.LeftTopX,
             LeftTopY = dto.LeftTopY,
             RightBottomX = dto.RightBottomX,
             RightBottomY = dto.RightBottomY,
             Name = dto.Name,
-            Color = dto.Color
         };
 
-        // 4. Проверяем пересечения с существующими блоками
-        var intersectionBlockId = CheckIntersectionBlocks(newBlock, grid);
+        // проверка пересечений
+        var intersectionBlockId = CheckIntersectionBlocks(newBlock, grid, null);
         if (intersectionBlockId != null)
-        {
             throw new InvalidOperationException(
                 $"Блок пересекается с существующим блоком {intersectionBlockId}"
             );
-        }
 
-        // 5. Добавляем блок в массив
+        // добавление в Blocks внутри найденного Grid
         var update = Builders<PlaceModel>.Update
-            .AddToSet(p => p.Grids[-1].Blocks, newBlock);
+            .AddToSet("Grids.$.Blocks", newBlock);
 
-        await placesCollection.UpdateOneAsync(
-            p => p.PlaceShortId == dto.PlaceShortId && 
+        var result = await placesCollection.UpdateOneAsync(
+            p => p.PlaceShortId == dto.PlaceShortId &&
                  p.Grids.Any(g => g.GridId == dto.GridId),
             update
         );
+
+        if (result.ModifiedCount == 0)
+            throw new InvalidOperationException("Не удалось добавить блок");
     }
     
     public async Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto)
     {
+        // 1. Получаем место и проверяем, что всё существует
         var place = await GetPlaceById(dto.PlaceShortId);
         var grid = GetGridById(dto.GridId, place);
         var block = GetBlockById(dto.BlockId, grid);
-    
+
+        // 2. Создаем новый объект для проверки пересечений
         var updated = new Block
         {
             BlockId = block.BlockId,
@@ -296,75 +290,61 @@ public class PlaceService : IPlaceService
             RightBottomX = dto.RightBottomX,
             RightBottomY = dto.RightBottomY
         };
-        
-        var intersectionBlockId = CheckIntersectionBlocks(updated, grid);
+
+        // Проверяем пересечение, исключаем текущий блок
+        var intersectionBlockId = CheckIntersectionBlocks(updated, grid, dto.BlockId);
         if (intersectionBlockId != null)
-        {
-            throw new InvalidOperationException(
-                $"Блок пересекается с существующим блоком {intersectionBlockId}"
-            );
-        }
-    
-        var filter = Builders<PlaceModel>.Filter.And(
-            Builders<PlaceModel>.Filter.Eq(p => p.PlaceShortId, dto.PlaceShortId),
-            Builders<PlaceModel>.Filter.ElemMatch(p => p.Grids, g => g.GridId == dto.GridId),
-            Builders<PlaceModel>.Filter.Eq("Grids.Blocks.BlockId", dto.BlockId)
-        );
-    
-        var update = Builders<PlaceModel>.Update
-            .Set("Grids.$[].Blocks.$[b].LeftTopX", updated.LeftTopX)
-            .Set("Grids.$[].Blocks.$[b].LeftTopY", updated.LeftTopY)
-            .Set("Grids.$[].Blocks.$[b].RightBottomX", updated.RightBottomX)
-            .Set("Grids.$[].Blocks.$[b].RightBottomY", updated.RightBottomY);
-    
-        var arrayFilters = new List<ArrayFilterDefinition>
-        {
-            new JsonArrayFilterDefinition<BsonDocument>("{ 'b.BlockId': ObjectId('" + dto.BlockId + "') }")
-        };
-    
-        var options = new UpdateOptions { ArrayFilters = arrayFilters };
-    
-        await placesCollection.UpdateOneAsync(filter, update, options);
+            throw new InvalidOperationException($"Новые координаты блока пересекаются с блоком {intersectionBlockId}");
+
+        // 3. Применяем изменение в памяти
+        block.LeftTopX = dto.LeftTopX;
+        block.LeftTopY = dto.LeftTopY;
+        block.RightBottomX = dto.RightBottomX;
+        block.RightBottomY = dto.RightBottomY;
+
+        // 4. Заменяем документ целиком (или можно делать ReplaceOneAsync с фильтром по placeId)
+        var replaceFilter = Builders<PlaceModel>.Filter.Eq(p => p.PlaceId, place.PlaceId);
+        var replaceResult = await placesCollection.ReplaceOneAsync(replaceFilter, place);
+
+        if (replaceResult.ModifiedCount == 0)
+            throw new InvalidOperationException($"Не удалось обновить BlockId={dto.BlockId} (координаты могли быть такими же)");
     }
+
     
     public async Task UpdateBlockNameAsync(BlockUpdateNameDto dto)
     {
-        var place = await GetPlaceById(dto.PlaceShortId);
-        var grid = GetGridById(dto.GridId, place);
-        // var block = GetBlockById(dto.BlockId, grid);
-
-        var filter = Builders<PlaceModel>.Filter.And(
-            Builders<PlaceModel>.Filter.Eq(p => p.PlaceShortId, dto.PlaceShortId),
-            Builders<PlaceModel>.Filter.ElemMatch(p => p.Grids, g => g.GridId == dto.GridId),
-            Builders<PlaceModel>.Filter.Eq("Grids.Blocks.BlockId", dto.BlockId)
-        );
-
-        var update = Builders<PlaceModel>.Update
-            .Set("Grids.$[].Blocks.$[b].Name", dto.Name);
-
-        var arrayFilters = new List<ArrayFilterDefinition>
-        {
-            new JsonArrayFilterDefinition<BsonDocument>("{ 'b.BlockId': ObjectId('" + dto.BlockId + "') }")
-        };
-
-        var options = new UpdateOptions { ArrayFilters = arrayFilters };
-
-        await placesCollection.UpdateOneAsync(filter, update, options);
+        var place = await placesCollection.Find(p => p.PlaceShortId == dto.PlaceShortId).FirstOrDefaultAsync();
+        var grid = place.Grids.First(g => g.GridId == dto.GridId);
+        var block = grid.Blocks.First(b => b.BlockId == dto.BlockId);
+        block.Name = dto.Name;
+        await placesCollection.ReplaceOneAsync(p => p.PlaceShortId == dto.PlaceShortId, place);
     }
     
     public async Task DeleteBlockAsync(BlockDeleteDto dto)
     {
-        var place = await GetPlaceById(dto.PlaceShortId);
+        var place = await placesCollection
+            .Find(p => p.PlaceShortId == dto.PlaceShortId)
+            .FirstOrDefaultAsync();
 
-        var filter = Builders<PlaceModel>.Filter.And(
-            Builders<PlaceModel>.Filter.Eq(p => p.PlaceShortId, dto.PlaceShortId),
-            Builders<PlaceModel>.Filter.ElemMatch(p => p.Grids, g => g.GridId == dto.GridId)
+        if (place == null)
+            throw new KeyNotFoundException($"Place {dto.PlaceShortId} не найден");
+
+        var grid = place.Grids.FirstOrDefault(g => g.GridId == dto.GridId);
+        if (grid == null)
+            throw new KeyNotFoundException($"Grid {dto.GridId} не найден");
+
+        var block = grid.Blocks.FirstOrDefault(b => b.BlockId == dto.BlockId);
+        if (block == null)
+            throw new KeyNotFoundException($"Block {dto.BlockId} не найден");
+
+        // Удаляем блок из массива
+        grid.Blocks.Remove(block);
+
+        // Сохраняем документ целиком
+        var result = await placesCollection.ReplaceOneAsync(
+            p => p.PlaceShortId == dto.PlaceShortId,
+            place
         );
-
-        var update = Builders<PlaceModel>.Update
-            .PullFilter("Grids.$.Blocks", Builders<BsonDocument>.Filter.Eq("BlockId", dto.BlockId));
-
-        var result = await placesCollection.UpdateOneAsync(filter, update);
 
         if (result.ModifiedCount == 0)
             throw new InvalidOperationException($"Не удалось удалить блок {dto.BlockId}");
@@ -404,24 +384,14 @@ public class PlaceService : IPlaceService
     {
         var place = await GetPlaceById(dto.PlaceShortId);
 
-        var reservationExists = place.Reservations.Any(r =>
-            r.GridId == dto.GridId &&
-            r.BlockId == dto.BlockId &&
-            r.DateTimeStart == dto.DateTimeStart &&
-            r.DateTimeEnd == dto.DateTimeEnd
-        );
+        var reservationExists = place.Reservations
+            .Any(r => r.ReservationId == dto.ReservationId);
 
         if (!reservationExists)
-            throw new KeyNotFoundException("Бронь не найдена");
+            throw new KeyNotFoundException($"Бронь {dto.ReservationId} не найдена");
 
         var update = Builders<PlaceModel>.Update
-            .PullFilter(
-                p => p.Reservations,
-                r => r.GridId == dto.GridId &&
-                     r.BlockId == dto.BlockId &&
-                     r.DateTimeStart == dto.DateTimeStart &&
-                     r.DateTimeEnd == dto.DateTimeEnd
-            );
+            .PullFilter(p => p.Reservations, r => r.ReservationId == dto.ReservationId);
 
         var result = await placesCollection.UpdateOneAsync(
             p => p.PlaceShortId == dto.PlaceShortId,
@@ -429,6 +399,40 @@ public class PlaceService : IPlaceService
         );
 
         if (result.ModifiedCount == 0)
-            throw new InvalidOperationException("Не удалось удалить бронь");
+            throw new InvalidOperationException(
+                $"Не удалось удалить бронь {dto.ReservationId}"
+            );
+    }
+    
+    public async Task UpdateUserNameInAllPlacesAsync(string oldUserName, string newUserName)
+    {
+        if (string.IsNullOrWhiteSpace(oldUserName) || string.IsNullOrWhiteSpace(newUserName))
+            throw new ArgumentException("Usernames не может быть пустым");
+
+        var filter = Builders<PlaceModel>.Filter.ElemMatch(
+            p => p.UserAccesses,
+            ua => ua.UserName == oldUserName
+        );
+
+        var update = Builders<PlaceModel>.Update
+            .Set("UserAccesses.$[elem].UserName", newUserName);
+
+        var arrayFilter = new[]
+        {
+            new BsonDocumentArrayFilterDefinition<BsonDocument>(
+                new BsonDocument("elem.UserName", oldUserName)
+            )
+        };
+
+        var options = new UpdateOptions
+        {
+            ArrayFilters = arrayFilter,
+            IsUpsert = false
+        };
+
+        var result = await placesCollection.UpdateManyAsync(filter, update, options);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Не найдено ни одного PlaceModel с UserName = '{oldUserName}'");
     }
 }

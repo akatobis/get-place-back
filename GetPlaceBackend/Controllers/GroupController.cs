@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using GetPlaceBackend.Dto;
 using GetPlaceBackend.Models;
 using GetPlaceBackend.Services.Group;
@@ -20,12 +19,9 @@ public class GroupController : Controller
     }
     
     [HttpGet]
-    public async Task<IActionResult> Get(string userId)
+    public async Task<IActionResult> Get([FromQuery] string userId)
     {
-        if (!ObjectId.TryParse(userId, out var userObjectId))
-            return BadRequest(new { message = "Invalid ObjectId format" });
-        
-        var groups = await _service.GetAll(userObjectId);
+        var groups = await _service.GetAll(userId);
 
         return Ok(groups.Select(g => new GroupGetDto
         {
@@ -36,12 +32,9 @@ public class GroupController : Controller
     }
     
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById([FromRoute] string id)
     {
-        if (!ObjectId.TryParse(id, out var objectId))
-            return BadRequest(new { message = "Invalid ObjectId format" });
-
-        var group = await _service.GetByIdAsync(objectId);
+        var group = await _service.GetByIdAsync(id);
 
         if (group == null)
             return NotFound(new { message = "Group not found" });
@@ -59,20 +52,14 @@ public class GroupController : Controller
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] GroupAddDto groupAddDto)
     {
-        if (!ObjectId.TryParse(groupAddDto.UserId, out var userId))
-            return BadRequest(new { message = "Invalid ObjectId format" });
-        
-        await _service.AddAsync(groupAddDto.Name, userId);
+        await _service.AddAsync(groupAddDto.Name, groupAddDto.UserId);
         return Ok();
     }
     
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> Delete([FromRoute] string id)
     {
-        if (!ObjectId.TryParse(id, out var objectId))
-            return BadRequest("Invalid ID");
-
-        var result = await _service.SoftDeleteAsync(objectId);
+        var result = await _service.SoftDeleteAsync(id);
 
         return result 
             ? Ok("Group soft-deleted") 
@@ -82,10 +69,7 @@ public class GroupController : Controller
     [HttpPatch("update-order")]
     public async Task<IActionResult> UpdateOrder([FromBody] GroupUpdateOrderDto dto)
     {
-        if (!ObjectId.TryParse(dto.GroupId, out var objectId))
-            return BadRequest(new { message = "Invalid ObjectId format" });
-
-        var result = await _service.UpdateOrderAsync(objectId, dto.Order);
+        var result = await _service.UpdateOrderAsync(dto.GroupId, dto.Order);
         
         return result 
             ? Ok(new { message = "Order updated successfully" })
@@ -93,12 +77,9 @@ public class GroupController : Controller
     }
     
     [HttpPatch("{id}/rename")]
-    public async Task<IActionResult> Rename(string id, [FromBody] GroupRenameDto dto)
+    public async Task<IActionResult> Rename([FromRoute] string id, [FromBody] GroupRenameDto dto)
     {
-        if (!ObjectId.TryParse(id, out var objectId))
-            return BadRequest(new { message = "Invalid ObjectId format" });
-        
-        var result = await _service.RenameAsync(objectId, dto.Name);
+        var result = await _service.RenameAsync(id, dto.Name);
 
         return result 
             ? Ok(new { message = "Group name updated successfully" }) 

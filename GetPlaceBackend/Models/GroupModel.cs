@@ -6,13 +6,14 @@ namespace GetPlaceBackend.Models;
 public class GroupModel
 {
     [BsonId]
-    public ObjectId GroupId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string GroupId { get; set; } = ObjectId.GenerateNewId().ToString();
 
     public string Name { get; set; } = "";
 
     public int Order { get; set; }
     
     public bool IsDeleted { get; set; } = false;
-    
-    public ObjectId UserId { get; set; }
+
+    public string UserId { get; set; } = "";
 }
