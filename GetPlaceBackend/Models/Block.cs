@@ -6,7 +6,8 @@ namespace GetPlaceBackend.Models;
 public class Block
 {
     [BsonId]
-    public ObjectId BlockId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string BlockId { get; set; } = ObjectId.GenerateNewId().ToString();
     public int LeftTopX { get; set; }
     public int LeftTopY { get; set; }
     public int RightBottomX { get; set; }

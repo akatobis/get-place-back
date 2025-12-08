@@ -6,9 +6,10 @@ namespace GetPlaceBackend.Models;
 public class Reservation
 {
     [BsonId]
-    public ObjectId ReservationId { get; set; }
-    public ObjectId GridId { get; set; }
-    public ObjectId BlockId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string ReservationId { get; set; } = ObjectId.GenerateNewId().ToString();
+    public string GridId { get; set; } = ObjectId.GenerateNewId().ToString();
+    public string BlockId { get; set; } = ObjectId.GenerateNewId().ToString();
     public DateTime DateTimeStart { get; set; }
     public DateTime DateTimeEnd { get; set; }
 }

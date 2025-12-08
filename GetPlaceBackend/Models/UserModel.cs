@@ -12,7 +12,8 @@ public class UserModel
     }
     
     [BsonId]
-    public ObjectId UserId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string UserId { get; set; } = ObjectId.GenerateNewId().ToString();
     public string TgId { get; set; }
     public string UserName { get; set; }
     public bool IsDeleted { get; set; } = false;

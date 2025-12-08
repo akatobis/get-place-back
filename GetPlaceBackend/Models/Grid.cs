@@ -6,6 +6,7 @@ namespace GetPlaceBackend.Models;
 public class Grid
 {
     [BsonId]
-    public ObjectId GridId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string GridId { get; set; } = ObjectId.GenerateNewId().ToString();
     public List<Block> Blocks { get; set; } = [];
 }

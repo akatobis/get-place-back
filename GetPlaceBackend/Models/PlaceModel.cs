@@ -8,14 +8,17 @@ public class PlaceModel
 {
     public PlaceModel(string placeShortId, string ownerId, string name, string description)
     {
+        PlaceId = ObjectId.GenerateNewId().ToString();
         PlaceShortId = placeShortId;
         OwnerId = ownerId;
         Name = name;
         Description = description;
+        Grids = [ new Grid() ];
     }
 
     [BsonId]
-    public ObjectId PlaceId { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string PlaceId { get; set; }
     public string PlaceShortId { get; set; }
     public string OwnerId { get; set; }
     public string Color { get; set; } = "#8a7f8e";
@@ -32,7 +35,7 @@ public class PlaceModel
     [BsonRepresentation(BsonType.Int32)] 
     public AccessPlaceEnum Reservable { get; set; } = AccessPlaceEnum.all;
 
-    public List<ObjectId> GroupIds { get; set; } = [];
+    public List<string> GroupIds { get; set; } = [];
     public List<UserAccess> UserAccesses { get; set; } = [];
     public List<Grid> Grids { get; set; } = [];
     public List<Reservation> Reservations { get; set; } = [];
