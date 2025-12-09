@@ -84,12 +84,13 @@ public class PlaceService : IPlaceService
         return null;
     }
     
-    public async Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? userId = null)
+    public async Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? groupId = null)
     {
+        # TODO добавить фильтрацию по юзеру 
         var filter = Builders<PlaceModel>.Filter.Where(p => !p.IsDeleted);
-        if (!string.IsNullOrEmpty(userId))
+        if (!string.IsNullOrEmpty(groupId))
         {
-            filter = Builders<PlaceModel>.Filter.Where(p => !p.IsDeleted && p.OwnerId == userId);
+            filter = Builders<PlaceModel>.Filter.Where(p => !p.IsDeleted && p.Id == groupId);
         }
 
         return await placesCollection
