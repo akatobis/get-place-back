@@ -21,9 +21,9 @@ public class PlaceController : Controller
     }
     
     [HttpGet("card-place-list")]
-    public async Task<IActionResult> GetCardPlaceList([FromQuery] string? userId = null)
+    public async Task<IActionResult> GetCardPlaceList([FromQuery] string? groupId = null)
     {
-        var result = await _placeService.GetPlacesByGroupIdAsync(userId);
+        var result = await _placeService.GetPlacesByGroupIdAsync(groupId);
         return Ok(result);
     }
 

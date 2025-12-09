@@ -9,7 +9,7 @@ namespace GetPlaceBackend.Services.Place;
 
 public interface IPlaceService
 {
-    public Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? userId = null);
+    public Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? groupId = null);
     public Task<PlaceAccessDto?> GetPlaceAccessAsync(string placeShortId);
     public Task<PlaceUserAccessDto> GetPlaceUserAccessAsync(string placeShortId);
     public Task<PlaceGridsAndReservationsDto> GetGridsAndReservationsAsync(string placeShortId);
