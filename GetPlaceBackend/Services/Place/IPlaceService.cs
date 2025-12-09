@@ -9,11 +9,11 @@ namespace GetPlaceBackend.Services.Place;
 
 public interface IPlaceService
 {
-    public Task<List<PlaceModel>> GetPlacesByGroupIdAsync();
+    public Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? userId = null);
     public Task<PlaceAccessDto?> GetPlaceAccessAsync(string placeShortId);
     public Task<PlaceUserAccessDto> GetPlaceUserAccessAsync(string placeShortId);
     public Task<PlaceGridsAndReservationsDto> GetGridsAndReservationsAsync(string placeShortId);
-    public Task CreatePlaceAsync(PlaceCreateDto dto);
+    public Task<string> CreatePlaceAsync(PlaceCreateDto dto);
     public Task DeletePlaceAsync(string placeId);
     public Task UpdatePlaceNameAsync(PlaceUpdateNameDto dto);
     public Task UpdatePlaceAccessAsync(PlaceAccessUpdateDto dto);

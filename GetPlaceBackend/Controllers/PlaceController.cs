@@ -21,9 +21,9 @@ public class PlaceController : Controller
     }
     
     [HttpGet("card-place-list")]
-    public async Task<IActionResult> GetCardPlaceList()
+    public async Task<IActionResult> GetCardPlaceList([FromQuery] string? userId = null)
     {
-        var result = await _placeService.GetPlacesByGroupIdAsync();
+        var result = await _placeService.GetPlacesByGroupIdAsync(userId);
         return Ok(result);
     }
 
@@ -53,8 +53,8 @@ public class PlaceController : Controller
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PlaceCreateDto dto)
     {
-        await _placeService.CreatePlaceAsync(dto);
-        return Ok();
+        var shortId = await _placeService.CreatePlaceAsync(dto);
+        return Ok(new { placeShortId = shortId });
     }
     
     [HttpDelete("{placeShortId}")]

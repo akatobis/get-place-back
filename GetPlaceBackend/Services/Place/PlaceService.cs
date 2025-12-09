@@ -84,13 +84,17 @@ public class PlaceService : IPlaceService
         return null;
     }
     
-    public async Task<List<PlaceModel>> GetPlacesByGroupIdAsync()
+    public async Task<List<PlaceModel>> GetPlacesByGroupIdAsync(string? userId = null)
     {
-        var places = await placesCollection
-            .Find(p => true)
-            .ToListAsync();
+        var filter = Builders<PlaceModel>.Filter.Where(p => !p.IsDeleted);
+        if (!string.IsNullOrEmpty(userId))
+        {
+            filter = Builders<PlaceModel>.Filter.Where(p => !p.IsDeleted && p.OwnerId == userId);
+        }
 
-        return places;
+        return await placesCollection
+            .Find(filter)
+            .ToListAsync();
     }
     
     public async Task<PlaceAccessDto?> GetPlaceAccessAsync(string placeShortId)
@@ -135,10 +139,11 @@ public class PlaceService : IPlaceService
         };
     }
 
-    public async Task CreatePlaceAsync(PlaceCreateDto dto)
+    public async Task<string> CreatePlaceAsync(PlaceCreateDto dto)
     {
         var newPlace = new PlaceModel(GenerateShortId(), dto.OwnerId, dto.Name, dto.Description);
         await placesCollection.InsertOneAsync(newPlace);
+        return newPlace.PlaceShortId;
     }
 
     public async Task DeletePlaceAsync(string placeShortId)
