@@ -28,7 +28,7 @@ public class GroupService : IGroupService
             .FirstOrDefaultAsync();
     }
 
-    public async Task AddAsync(string name, string userId)
+    public async Task<string> AddAsync(string name, string userId)
     {
         var maxOrder = await _collectionDb
             .Find(_ => _.UserId == userId)
@@ -45,6 +45,8 @@ public class GroupService : IGroupService
         };
 
         await _collectionDb.InsertOneAsync(newGroup);
+
+        return newGroup.GroupId;
     }
 
     public async Task<bool> SoftDeleteAsync(string id)

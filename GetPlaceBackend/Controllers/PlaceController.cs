@@ -95,8 +95,8 @@ public class PlaceController : Controller
     [HttpPost("block")]
     public async Task<IActionResult> AddBlock([FromBody] BlockCreateDto dto)
     {
-        await _placeService.AddBlockAsync(dto);
-        return Ok();
+        var result = await _placeService.AddBlockAsync(dto);
+        return Ok(result);
     }
     
     [HttpPatch("block-coordinates")]
@@ -124,8 +124,8 @@ public class PlaceController : Controller
     [HttpPost("reservation")]
     public async Task<IActionResult> AddReservation([FromBody] ReservationCreateDto dto)
     {
-        await _placeService.AddReservationAsync(dto);
-        return Ok();
+        var result = await _placeService.AddReservationAsync(dto);
+        return Ok(result);
     }
     
     [HttpDelete("{placeShortId}/reservation/{reservationId}")]

@@ -19,11 +19,11 @@ public interface IPlaceService
     public Task UpdatePlaceAccessAsync(PlaceAccessUpdateDto dto);
     public Task AddUserAccessAsync(UserAccessAddDto dto);
     public Task UpdateUserAccessAsync(UserAccessUpdateDto dto);
-    public Task AddBlockAsync(BlockCreateDto dto);
+    public Task<string> AddBlockAsync(BlockCreateDto dto);
     public Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto);
     public Task UpdateBlockNameAsync(BlockUpdateNameDto dto);
     public Task DeleteBlockAsync(BlockDeleteDto dto);
-    public Task AddReservationAsync(ReservationCreateDto dto);
+    public Task<string> AddReservationAsync(ReservationCreateDto dto);
     public Task DeleteReservationAsync(ReservationDeleteDto dto);
     public Task UpdateUserNameInAllPlacesAsync(string oldUserName, string newUserName);
 }
