@@ -18,6 +18,7 @@ public interface IPlaceService
     public Task UpdatePlaceNameAsync(PlaceUpdateNameDto dto);
     public Task UpdatePlaceAccessAsync(PlaceAccessUpdateDto dto);
     public Task AddUserAccessAsync(UserAccessAddDto dto);
+    public Task UpdateUserAccessAsync(UserAccessUpdateDto dto);
     public Task AddBlockAsync(BlockCreateDto dto);
     public Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto);
     public Task UpdateBlockNameAsync(BlockUpdateNameDto dto);

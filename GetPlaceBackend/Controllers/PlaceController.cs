@@ -85,6 +85,13 @@ public class PlaceController : Controller
         return Ok();
     }
     
+    [HttpPatch("user-access")]
+    public async Task<IActionResult> UpdateUserAccess([FromBody] UserAccessUpdateDto dto)
+    {
+        await _placeService.UpdateUserAccessAsync(dto);
+        return Ok();
+    }
+    
     [HttpPost("block")]
     public async Task<IActionResult> AddBlock([FromBody] BlockCreateDto dto)
     {
