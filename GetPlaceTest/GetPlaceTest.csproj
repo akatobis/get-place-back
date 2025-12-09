@@ -23,13 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Block\" />
-      <Folder Include="Place\" />
-      <Folder Include="Reservation\" />
-      <Folder Include="UserAccess\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\GetPlaceBackend\GetPlaceBackend.csproj" />
     </ItemGroup>
 
