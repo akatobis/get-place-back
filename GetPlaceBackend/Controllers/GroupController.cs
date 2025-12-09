@@ -41,7 +41,7 @@ public class GroupController : Controller
 
         var resultDto = new GroupGetDto
         {
-            GroupId = group.GroupId.ToString(),
+            GroupId = group.GroupId,
             Name = group.Name,
             Order = group.Order
         };
