@@ -52,8 +52,8 @@ public class GroupController : Controller
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] GroupAddDto groupAddDto)
     {
-        await _service.AddAsync(groupAddDto.Name, groupAddDto.UserId);
-        return Ok();
+        var result = await _service.AddAsync(groupAddDto.Name, groupAddDto.UserId);
+        return Ok(result);
     }
     
     [HttpDelete("{id}")]

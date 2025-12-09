@@ -241,7 +241,7 @@ public class PlaceService : IPlaceService
         );
     }
     
-    public async Task AddBlockAsync(BlockCreateDto dto)
+    public async Task<string> AddBlockAsync(BlockCreateDto dto)
     {
         var place = await GetPlaceById(dto.PlaceShortId);
         var grid = GetGridById(dto.GridId, place);
@@ -275,6 +275,8 @@ public class PlaceService : IPlaceService
 
         if (result.ModifiedCount == 0)
             throw new InvalidOperationException("Не удалось добавить блок");
+        
+        return newBlock.BlockId;
     }
     
     public async Task UpdateBlockCoordinatesAsync(BlockUpdateCoordinatesDto dto)
@@ -355,7 +357,7 @@ public class PlaceService : IPlaceService
             throw new InvalidOperationException($"Не удалось удалить блок {dto.BlockId}");
     }
     
-    public async Task AddReservationAsync(ReservationCreateDto dto)
+    public async Task<string> AddReservationAsync(ReservationCreateDto dto)
     {
         var place = await GetPlaceById(dto.PlaceShortId);
 
@@ -383,6 +385,8 @@ public class PlaceService : IPlaceService
             p => p.PlaceShortId == dto.PlaceShortId,
             update
         );
+
+        return newReservation.ReservationId;
     }
 
     public async Task DeleteReservationAsync(ReservationDeleteDto dto)
