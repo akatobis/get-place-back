@@ -440,8 +440,5 @@ public class PlaceService : IPlaceService
         };
 
         var result = await placesCollection.UpdateManyAsync(filter, update, options);
-
-        if (result.MatchedCount == 0)
-            throw new KeyNotFoundException($"Не найдено ни одного PlaceModel с UserName = '{oldUserName}'");
     }
 }

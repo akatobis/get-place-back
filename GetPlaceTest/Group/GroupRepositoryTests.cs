@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using GetPlaceBackend.Models;
 using GetPlaceBackend.Services.Group;
 
-namespace GetPlaceTest;
+namespace GetPlaceTest.Group;
 
 public class GroupRepositoryTests
 {
