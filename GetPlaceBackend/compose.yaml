@@ -1,12 +1,4 @@
 ﻿services:
-#  getplacebackend:
-#    image: getplacebackend
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    ports:
-#      - '5211:5211'
-
   mongodb:
     image: "mongo:4.4"
     volumes:
@@ -18,4 +10,18 @@
       MONGO_INITDB_DATABASE: GetPlace
     ports:
       - "27018:27017"
+
+  getplacebackend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5211
+      - MONGO_CONN=mongodb://root:secret@mongodb:27017
+      - APP_UID=0
+    ports:
+      - "5211:5211"
+    depends_on:
+      - mongodb
 

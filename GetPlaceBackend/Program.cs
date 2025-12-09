@@ -6,7 +6,9 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton(new MongoClient("mongodb://root:secret@localhost:27018").GetDatabase("get_place"));
+var mongoConn = Environment.GetEnvironmentVariable("MONGO_CONN") 
+                ?? "mongodb://root:secret@localhost:27018";
+builder.Services.AddSingleton(new MongoClient(mongoConn).GetDatabase("get_place"));
 
 builder.Services.AddControllers();
 
